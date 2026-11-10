@@ -12,7 +12,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { applyToZCode, type BeautifyConfig } from "./core/inject.js";
+import { applyToZCode, DEFAULT_CONFIG, type BeautifyConfig } from "./core/inject.js";
 import type { ApplyOptions } from "./core/session.js";
 import { launchZcode, dataDir } from "./core/launch.js";
 import { applyWallpaper, resetAppearance } from "./core/session.js";
@@ -29,6 +29,14 @@ Commands:
     --dim <0-100>                Darken the wallpaper (default 25)
     --fit <mode>                 cover | contain | smart (default cover)
     --no-monet                   Keep ZCode's original colors
+    --sidebar-glass              Frost the left sidebar into a liquid-glass panel
+    --sidebar-blur <px>          Sidebar backdrop blur (default 38)
+    --sidebar-tint <0-100>       Sidebar glass tint strength (default 30)
+    --sidebar-radius <px>        Sidebar corner radius; 0 = flush (default 18)
+    --preview-glass              Frost the right-hand file preview into a glass sheet
+    --preview-blur <px>          Preview backdrop blur (default 40)
+    --preview-tint <0-100>       Preview glass tint strength (default 30)
+    --preview-radius <px>        Preview corner radius; 0 = flush (default 16)
     --port <N>                   CDP port (default 9222)
   colors [--port N]              Re-apply stored theme without wallpaper change
   reset [--port N]               Remove wallpaper and color overrides
@@ -87,6 +95,16 @@ async function main(): Promise<void> {
           dim: Number(flag("--dim") ?? 25),
           monet: !has("--no-monet"),
           fit: flag("--fit") as ApplyOptions["fit"],
+          // Only set the glass when asked: passing `false` unconditionally would
+          // silently switch off a panel the user enabled earlier.
+          ...(has("--sidebar-glass") ? { sidebarGlass: true } : {}),
+          ...(flag("--sidebar-blur") !== undefined ? { sidebarBlur: Number(flag("--sidebar-blur")) } : {}),
+          ...(flag("--sidebar-tint") !== undefined ? { sidebarTint: Number(flag("--sidebar-tint")) } : {}),
+          ...(flag("--sidebar-radius") !== undefined ? { sidebarRadius: Number(flag("--sidebar-radius")) } : {}),
+          ...(has("--preview-glass") ? { previewGlass: true } : {}),
+          ...(flag("--preview-blur") !== undefined ? { previewBlur: Number(flag("--preview-blur")) } : {}),
+          ...(flag("--preview-tint") !== undefined ? { previewTint: Number(flag("--preview-tint")) } : {}),
+          ...(flag("--preview-radius") !== undefined ? { previewRadius: Number(flag("--preview-radius")) } : {}),
         });
         console.log(`Applied wallpaper + theme to ${windows} window(s).`);
         break;
@@ -266,7 +284,7 @@ async function watch(port: number): Promise<void> {
   const { buildPayloadFromConfig } = await import("./core/session.js");
   const { loadConfig } = await import("./core/launch.js");
   const config = {
-    ...{ port: 9222, blur: 0, dim: 25, monet: true, wallpaperVisible: true, fit: "cover" as const },
+    ...DEFAULT_CONFIG,
     ...loadConfig(),
     port,
     fit: loadConfig().fit ?? "cover",

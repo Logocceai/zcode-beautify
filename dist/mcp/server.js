@@ -144491,7 +144491,15 @@ var DEFAULT_CONFIG = {
   dim: 25,
   monet: true,
   wallpaperVisible: true,
-  fit: "cover"
+  fit: "cover",
+  sidebarGlass: false,
+  sidebarBlur: 38,
+  sidebarTint: 30,
+  sidebarRadius: 18,
+  previewGlass: false,
+  previewBlur: 40,
+  previewTint: 30,
+  previewRadius: 16
 };
 function buildPayload(config2, assets) {
   const parts = [];
@@ -144544,6 +144552,12 @@ html, body { background: transparent !important; }
     }
   }
   const wallpaperDataUri = config2.wallpaperVisible ? assets?.dataUri : void 0;
+  if (config2.sidebarGlass) {
+    parts.push(buildSidebarGlassCss(config2));
+  }
+  if (config2.previewGlass) {
+    parts.push(buildPreviewGlassCss(config2));
+  }
   return {
     css: parts.join("\n"),
     wallpaperDataUri,
@@ -144551,6 +144565,81 @@ html, body { background: transparent !important; }
     focusX,
     focusY
   };
+}
+function glassRules(r2) {
+  const sheen = `linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.06) 26%,
+    rgba(255, 255, 255, 0.00) 48%,
+    rgba(255, 255, 255, 0.03) 74%,
+    rgba(255, 255, 255, 0.10) 100%
+  )`;
+  const rim = [
+    "inset 0 1.5px 0 rgba(255, 255, 255, 0.34)",
+    "inset 0 0 0 1px rgba(255, 255, 255, 0.14)",
+    "inset 0 -1.5px 0 rgba(255, 255, 255, 0.08)",
+    "inset 0 0 24px rgba(255, 255, 255, 0.035)"
+  ];
+  const floating = r2.radius > 0;
+  if (floating)
+    rim.push("0 10px 32px rgba(0, 0, 0, 0.34)", "0 2px 10px rgba(0, 0, 0, 0.20)");
+  const inset = !floating ? `  margin: 0 !important;` : r2.marginAxis === "all" ? `  margin: 8px !important;
+  height: calc(100% - 16px) !important;` : `  margin: 6px 6px 6px 0 !important;
+  height: calc(100% - 12px) !important;`;
+  const tintPct = Math.round(Math.max(0, Math.min(100, r2.tint)));
+  const blur = Math.max(0, Math.min(60, r2.blur));
+  const radius = Math.max(0, Math.min(40, r2.radius));
+  return `${r2.selector} {
+${inset}
+  border-radius: ${radius}px !important;
+  background-color: color-mix(in srgb, var(${r2.tintVar}, ${r2.tintFallback}) ${tintPct}%, transparent) !important;
+  background-image: ${sheen} !important;
+  backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
+  -webkit-backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
+  box-shadow: ${rim.join(", ")} !important;
+  border: none !important;
+}${r2.extra ? "\n" + r2.extra : ""}`;
+}
+function buildSidebarGlassCss(config2) {
+  return glassRules({
+    selector: "#sidebar",
+    tintVar: "--color-sidebar",
+    tintFallback: "rgba(32, 26, 25, 0.62)",
+    tint: config2.sidebarTint,
+    blur: config2.sidebarBlur,
+    radius: config2.sidebarRadius,
+    marginAxis: "all"
+  });
+}
+function buildPreviewGlassCss(config2) {
+  return glassRules({
+    selector: "#browser",
+    tintVar: "--color-card",
+    tintFallback: "rgba(37, 30, 29, 0.72)",
+    tint: config2.previewTint,
+    blur: config2.previewBlur,
+    radius: config2.previewRadius,
+    marginAxis: "left",
+    // The panel's own wrapper carries a 6px radius; match it inward so the two
+    // rounded corners stay concentric instead of cutting a notch.
+    // The collapse guard matters: the host keeps this panel mounted at width 0
+    // (it never sets display:none) and marks it data-disabled, so the glass,
+    // its margin and its outer shadow would still be laid out — the float
+    // shadow alone smears a dark smudge past the window edge.
+    extra: `#browser > div > div > div[class*="rounded-md"] {
+  border-radius: 12px !important;
+}
+#browser[data-disabled="true"] {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}`
+  });
 }
 async function applyToZCode(config2, payload) {
   const targets = pickRendererTargets(await listTargets(config2.port));
@@ -144639,7 +144728,15 @@ async function applyWallpaper(imagePath, opts) {
     dim: opts.dim ?? stored.dim ?? DEFAULT_CONFIG.dim,
     monet: opts.monet ?? stored.monet ?? DEFAULT_CONFIG.monet,
     wallpaperVisible: opts.wallpaperVisible ?? stored.wallpaperVisible ?? DEFAULT_CONFIG.wallpaperVisible,
-    fit: opts.fit ?? stored.fit ?? DEFAULT_CONFIG.fit
+    fit: opts.fit ?? stored.fit ?? DEFAULT_CONFIG.fit,
+    sidebarGlass: opts.sidebarGlass ?? stored.sidebarGlass ?? DEFAULT_CONFIG.sidebarGlass,
+    sidebarBlur: opts.sidebarBlur ?? stored.sidebarBlur ?? DEFAULT_CONFIG.sidebarBlur,
+    sidebarTint: opts.sidebarTint ?? stored.sidebarTint ?? DEFAULT_CONFIG.sidebarTint,
+    sidebarRadius: opts.sidebarRadius ?? stored.sidebarRadius ?? DEFAULT_CONFIG.sidebarRadius,
+    previewGlass: opts.previewGlass ?? stored.previewGlass ?? DEFAULT_CONFIG.previewGlass,
+    previewBlur: opts.previewBlur ?? stored.previewBlur ?? DEFAULT_CONFIG.previewBlur,
+    previewTint: opts.previewTint ?? stored.previewTint ?? DEFAULT_CONFIG.previewTint,
+    previewRadius: opts.previewRadius ?? stored.previewRadius ?? DEFAULT_CONFIG.previewRadius
   };
   fs4.mkdirSync(dataDir(), { recursive: true });
   const dest = path2.join(dataDir(), "wallpaper" + path2.extname(abs).toLowerCase());
@@ -144661,7 +144758,15 @@ async function applyColorsOnly(opts) {
     dim: opts.dim ?? stored.dim ?? DEFAULT_CONFIG.dim,
     monet: opts.monet ?? stored.monet ?? DEFAULT_CONFIG.monet,
     wallpaperVisible: opts.wallpaperVisible ?? stored.wallpaperVisible ?? DEFAULT_CONFIG.wallpaperVisible,
-    fit: opts.fit ?? stored.fit ?? DEFAULT_CONFIG.fit
+    fit: opts.fit ?? stored.fit ?? DEFAULT_CONFIG.fit,
+    sidebarGlass: opts.sidebarGlass ?? stored.sidebarGlass ?? DEFAULT_CONFIG.sidebarGlass,
+    sidebarBlur: opts.sidebarBlur ?? stored.sidebarBlur ?? DEFAULT_CONFIG.sidebarBlur,
+    sidebarTint: opts.sidebarTint ?? stored.sidebarTint ?? DEFAULT_CONFIG.sidebarTint,
+    sidebarRadius: opts.sidebarRadius ?? stored.sidebarRadius ?? DEFAULT_CONFIG.sidebarRadius,
+    previewGlass: opts.previewGlass ?? stored.previewGlass ?? DEFAULT_CONFIG.previewGlass,
+    previewBlur: opts.previewBlur ?? stored.previewBlur ?? DEFAULT_CONFIG.previewBlur,
+    previewTint: opts.previewTint ?? stored.previewTint ?? DEFAULT_CONFIG.previewTint,
+    previewRadius: opts.previewRadius ?? stored.previewRadius ?? DEFAULT_CONFIG.previewRadius
   };
   saveConfig(config2);
   return applyToZCode(config2, await buildPayloadFromConfig(config2));
@@ -144990,17 +145095,39 @@ server.registerTool("set_background", {
 });
 server.registerTool("apply_options", {
   title: "Tune ZCode appearance",
-  description: "Adjust the live ZCode appearance without changing the wallpaper: blur radius, dim level, Monet dynamic colors on/off, and wallpaper visibility (translucent vs opaque surfaces). Only the provided values change; the rest keep their current setting.",
+  description: "Adjust the live ZCode appearance without changing the wallpaper: blur radius, dim level, Monet dynamic colors on/off, wallpaper visibility (translucent vs opaque surfaces), and the liquid-glass left sidebar. Only the provided values change; the rest keep their current setting.",
   inputSchema: {
     blur: external_exports.number().min(0).max(100).optional().describe("Wallpaper blur radius in px"),
     dim: external_exports.number().min(0).max(100).optional().describe("Wallpaper darkening 0-100"),
     monet: external_exports.boolean().optional().describe("Regenerate UI colors from the wallpaper (true) or keep ZCode's original colors (false)"),
     wallpaper_visible: external_exports.boolean().optional().describe("Translucent surfaces showing the wallpaper (true) or opaque surfaces (false)"),
-    fit: external_exports.enum(["cover", "contain", "smart"]).optional().describe("Framing: cover fills and crops, contain letterboxes with a blurred backdrop, smart analyzes the picture locally and picks the best framing + focus point")
+    fit: external_exports.enum(["cover", "contain", "smart"]).optional().describe("Framing: cover fills and crops, contain letterboxes with a blurred backdrop, smart analyzes the picture locally and picks the best framing + focus point"),
+    sidebar_glass: external_exports.boolean().optional().describe("Frost the left sidebar into a floating liquid-glass panel (false restores the flat sidebar)"),
+    sidebar_blur: external_exports.number().min(0).max(60).optional().describe("Sidebar backdrop blur radius in px (default 38)"),
+    sidebar_tint: external_exports.number().min(0).max(100).optional().describe("Sidebar glass tint strength 0-100: higher is more opaque, lower lets more wallpaper through (default 30)"),
+    sidebar_radius: external_exports.number().min(0).max(40).optional().describe("Sidebar corner radius in px; 0 makes the panel flush with the window edge (default 18)"),
+    preview_glass: external_exports.boolean().optional().describe("Frost the right-hand file preview into a glass sheet (false restores the flat panel)"),
+    preview_blur: external_exports.number().min(0).max(60).optional().describe("Preview backdrop blur radius in px (default 40)"),
+    preview_tint: external_exports.number().min(0).max(100).optional().describe("Preview glass tint strength 0-100: higher is more opaque (default 30)"),
+    preview_radius: external_exports.number().min(0).max(40).optional().describe("Preview corner radius in px; 0 makes the panel flush (default 16)")
   }
-}, async ({ blur, dim, monet, wallpaper_visible, fit }) => {
+}, async ({ blur, dim, monet, wallpaper_visible, fit, sidebar_glass, sidebar_blur, sidebar_tint, sidebar_radius, preview_glass, preview_blur, preview_tint, preview_radius }) => {
   try {
-    const windows = await applyColorsOnly({ blur, dim, monet, wallpaperVisible: wallpaper_visible, fit });
+    const windows = await applyColorsOnly({
+      blur,
+      dim,
+      monet,
+      wallpaperVisible: wallpaper_visible,
+      fit,
+      sidebarGlass: sidebar_glass,
+      sidebarBlur: sidebar_blur,
+      sidebarTint: sidebar_tint,
+      sidebarRadius: sidebar_radius,
+      previewGlass: preview_glass,
+      previewBlur: preview_blur,
+      previewTint: preview_tint,
+      previewRadius: preview_radius
+    });
     return { content: [{ type: "text", text: `Appearance updated in ${windows} window(s).` }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Failed: ${err.message}` }], isError: true };
