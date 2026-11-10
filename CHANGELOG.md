@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Liquid-glass sidebar.** `sidebarGlass` frosts ZCode's left sidebar into a
+  floating glass panel: backdrop blur, a diagonal specular sheen, a lit rim and
+  an outer float shadow. Off by default — existing users see no change. Three
+  accompanying knobs: `sidebarBlur` (0-60 px), `sidebarTint` (0-100, how much
+  theme surface the panel keeps) and `sidebarRadius` (0-40 px; 0 keeps the panel
+  flush with the window edge instead of floating). Exposed in the settings panel,
+  the `apply_options` MCP tool, and `apply --sidebar-glass --sidebar-blur …
+  --sidebar-tint … --sidebar-radius …`.
+  The tint is derived from `--color-sidebar` via `color-mix`, so the panel
+  follows the Monet scheme (or ZCode's native colours when Monet is off) rather
+  than hard-coding a palette, and the CSS sets no `position`/`z-index` on
+  `#sidebar`, so ZCode's own modals keep their stacking order.
+
 ## v0.3.3
 
 The plugin now keeps the debug port alive across ZCode updates by itself, and

@@ -100,6 +100,17 @@ export function buildPanelScript(apiPort: number, token: string): string {
     '      <label title="根据壁纸自动生成 UI 配色;关闭则保留 ZCode 原生颜色"><input type="checkbox" id="zb-monet">UI 莫奈取色</label>' +
     '      <label title="显示或隐藏背景壁纸"><input type="checkbox" id="zb-vis">显示壁纸</label>' +
     '    </div>' +
+    '    <div class="zb-row zb-toggles">' +
+    '      <label title="把左侧栏做成悬浮的磨砂玻璃面板(配色跟随 UI,不额外写死颜色)"><input type="checkbox" id="zb-glass">侧栏液态玻璃</label>' +
+    '    </div>' +
+    '    <div id="zb-glass-opts">' +
+    '      <div class="zb-row"><label title="侧栏玻璃背后的模糊强度(像素)"><span>玻璃模糊</span><span><span id="zb-gblur-val">38</span>px</span></label>' +
+    '        <input type="range" id="zb-gblur" min="0" max="60" step="1" value="38"></div>' +
+    '      <div class="zb-row"><label title="玻璃的不透明度:越高越接近实色,越低壁纸越透出来"><span>玻璃浓度</span><span><span id="zb-gtint-val">30</span>%</span></label>' +
+    '        <input type="range" id="zb-gtint" min="0" max="100" step="1" value="30"></div>' +
+    '      <div class="zb-row"><label title="侧栏圆角:0 表示贴着窗口边缘,大于 0 则悬浮成一整块面板"><span>圆角</span><span><span id="zb-gradius-val">18</span>px</span></label>' +
+    '        <input type="range" id="zb-gradius" min="0" max="40" step="1" value="18"></div>' +
+    '    </div>' +
     '    <div class="zb-row zb-actions">' +
     '      <button class="zb-btn" id="zb-fit" title="背景填充方式:填满裁剪铺满窗口 / 完整显示不裁剪(模糊垫底)/ 智能适配自动分析画面主体">背景填充: …</button>' +
     '    </div>' +
@@ -163,9 +174,20 @@ export function buildPanelScript(apiPort: number, token: string): string {
         blur: Number($('zb-blur').value),
         dim: Number($('zb-dim').value),
         monet: $('zb-monet').checked,
-        wallpaperVisible: $('zb-vis').checked
+        wallpaperVisible: $('zb-vis').checked,
+        sidebarGlass: $('zb-glass').checked,
+        sidebarBlur: Number($('zb-gblur').value),
+        sidebarTint: Number($('zb-gtint').value),
+        sidebarRadius: Number($('zb-gradius').value)
       }, function (d) { status(d && d.windows > 0 ? '已应用 applied' : '已保存(ZCode 未连接)'); });
     }, 300);
+  }
+
+  /** The glass sliders only matter while the glass is on — dim them otherwise. */
+  function syncGlassEnabled() {
+    var on = $('zb-glass').checked;
+    var box = $('zb-glass-opts');
+    if (box) { box.style.opacity = on ? '1' : '0.45'; box.style.pointerEvents = on ? 'auto' : 'none'; }
   }
 
   // The control service lives in a separate process that can stop or die. When
@@ -189,6 +211,8 @@ export function buildPanelScript(apiPort: number, token: string): string {
       $('zb-dim').value = 0; $('zb-dim-val').textContent = '0';
       $('zb-monet').checked = false;
       $('zb-vis').checked = false;
+      $('zb-glass').checked = false;
+      syncGlassEnabled();
       $('zb-fit').textContent = '背景填充: 未知';
       $('zb-fit').removeAttribute('data-fit');
       $('zb-reset').textContent = '还原默认外观';
@@ -208,6 +232,11 @@ export function buildPanelScript(apiPort: number, token: string): string {
         $('zb-dim').value = c.dim; $('zb-dim-val').textContent = c.dim;
         $('zb-monet').checked = !!c.monet;
         $('zb-vis').checked = !!c.wallpaperVisible;
+        $('zb-glass').checked = !!c.sidebarGlass;
+        if (typeof c.sidebarBlur === 'number') { $('zb-gblur').value = c.sidebarBlur; $('zb-gblur-val').textContent = c.sidebarBlur; }
+        if (typeof c.sidebarTint === 'number') { $('zb-gtint').value = c.sidebarTint; $('zb-gtint-val').textContent = c.sidebarTint; }
+        if (typeof c.sidebarRadius === 'number') { $('zb-gradius').value = c.sidebarRadius; $('zb-gradius-val').textContent = c.sidebarRadius; }
+        syncGlassEnabled();
         $('zb-fit') && applyFitLabel($('zb-fit'), c.fit || 'cover');
         var resetBtn = $('zb-reset');
         if (c.wallpaperSet) {
@@ -235,6 +264,10 @@ export function buildPanelScript(apiPort: number, token: string): string {
   });
   $('zb-monet').addEventListener('change', pushConfig);
   $('zb-vis').addEventListener('change', pushConfig);
+  $('zb-glass').addEventListener('change', function () { syncGlassEnabled(); pushConfig(); });
+  $('zb-gblur').addEventListener('input', function () { $('zb-gblur-val').textContent = this.value; pushConfig(); });
+  $('zb-gtint').addEventListener('input', function () { $('zb-gtint-val').textContent = this.value; pushConfig(); });
+  $('zb-gradius').addEventListener('input', function () { $('zb-gradius-val').textContent = this.value; pushConfig(); });
 
   var FITS = ['cover', 'contain', 'smart'];
   var FIT_LABELS = { cover: '填满裁剪', contain: '完整显示', smart: '智能适配' };

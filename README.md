@@ -10,6 +10,7 @@ Beautify the **ZCode desktop client**: use any image as a background wallpaper a
 
 - **Wallpaper** — any local image becomes a fixed background layer behind the UI, with three framing modes: `cover` (fill and crop), `contain` (letterboxed over a blurred backdrop of the same picture), and `smart` — a local AI-style analysis that finds the salient subject and picks the best framing and focus point automatically.
 - **Monet theming** — a source color is extracted from the wallpaper with Google's official MD3 algorithm; light/dark palettes are mapped onto ZCode's semantic CSS variables (35+ tokens).
+- **Liquid-glass sidebar** — an optional frost treatment for the left sidebar: backdrop blur, a diagonal specular sheen, a lit rim and an outer float shadow, so the column reads as a pane of glass instead of a transparent hole in the wallpaper. The tint is derived from `--color-sidebar` with `color-mix`, so it follows the Monet scheme (or ZCode's native colours when Monet is off). Off by default; blur, tint strength and corner radius are adjustable — radius 0 keeps the panel flush with the window edge.
 - **Live settings panel** — a draggable panel inside ZCode with blur/dim sliders, Monet and wallpaper-visibility toggles, one-click wallpaper swap, and reset. Changes preview instantly and persist.
 - **Conversation control** — bundled slash command `/beautify` and MCP tools let the ZCode agent set the wallpaper or tune the theme on your behalf.
 - **Survives restarts** — the injected theme dies with the renderer on every ZCode restart, so the plugin puts it back: `on-start` (default) has the MCP host restore it when ZCode starts, `always` keeps a background service alive so the theme *and* the settings panel survive a reboot. Choose either in the settings panel.
@@ -106,7 +107,7 @@ You can also just type `/beautify <image path>` in ZCode and let the agent do it
 | Command | Purpose |
 |---|---|
 | `launch [--port N]` | Start ZCode with `--remote-debugging-port` (quit ZCode first) |
-| `apply <image> [--blur] [--dim] [--fit] [--no-monet]` | Set wallpaper + adapt colors (`--fit cover\|contain\|smart`) |
+| `apply <image> [--blur] [--dim] [--fit] [--no-monet] [--sidebar-glass] [--sidebar-blur] [--sidebar-tint] [--sidebar-radius]` | Set wallpaper + adapt colors (`--fit cover\|contain\|smart`); `--sidebar-glass` enables the liquid-glass sidebar |
 | `colors` | Re-apply the stored theme without changing the image |
 | `serve [--detach] [--api-port M]` | Watch mode + settings panel + local control API (default API port 9223); `--detach` survives the shell that started it |
 | `watch` | Headless watch mode: re-inject whenever ZCode restarts |
@@ -121,7 +122,7 @@ You can also just type `/beautify <image path>` in ZCode and let the agent do it
 | Tool | Purpose |
 |---|---|
 | `set_background` | Set wallpaper + Monet colors |
-| `apply_options` | Tune blur/dim/monet/wallpaper visibility/framing without re-sending the image |
+| `apply_options` | Tune blur/dim/monet/wallpaper visibility/framing/liquid-glass sidebar without re-sending the image |
 | `refresh_theme` | Re-inject the stored theme after a restart |
 | `reset_appearance` | Remove wallpaper and overrides |
 | `beautify_status` | Show the stored config |

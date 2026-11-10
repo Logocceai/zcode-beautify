@@ -93,6 +93,10 @@ function publicConfig(config: BeautifyConfig) {
     monet: config.monet,
     wallpaperVisible: config.wallpaperVisible,
     fit: config.fit,
+    sidebarGlass: config.sidebarGlass,
+    sidebarBlur: config.sidebarBlur,
+    sidebarTint: config.sidebarTint,
+    sidebarRadius: config.sidebarRadius,
     wallpaperSet: Boolean(config.wallpaperPath && fs.existsSync(config.wallpaperPath)),
     hasBackup: hasBackup(),
     cdpPort: config.port,
@@ -106,6 +110,10 @@ function sanitize(body: any): Partial<BeautifyConfig> {
   if (typeof body?.monet === "boolean") out.monet = body.monet;
   if (typeof body?.wallpaperVisible === "boolean") out.wallpaperVisible = body.wallpaperVisible;
   if (body?.fit === "cover" || body?.fit === "contain" || body?.fit === "smart") out.fit = body.fit;
+  if (typeof body?.sidebarGlass === "boolean") out.sidebarGlass = body.sidebarGlass;
+  if (typeof body?.sidebarBlur === "number" && body.sidebarBlur >= 0 && body.sidebarBlur <= 60) out.sidebarBlur = body.sidebarBlur;
+  if (typeof body?.sidebarTint === "number" && body.sidebarTint >= 0 && body.sidebarTint <= 100) out.sidebarTint = body.sidebarTint;
+  if (typeof body?.sidebarRadius === "number" && body.sidebarRadius >= 0 && body.sidebarRadius <= 40) out.sidebarRadius = body.sidebarRadius;
   return out;
 }
 

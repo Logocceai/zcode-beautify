@@ -50,18 +50,32 @@ server.registerTool(
   {
     title: "Tune ZCode appearance",
     description:
-      "Adjust the live ZCode appearance without changing the wallpaper: blur radius, dim level, Monet dynamic colors on/off, and wallpaper visibility (translucent vs opaque surfaces). Only the provided values change; the rest keep their current setting.",
+      "Adjust the live ZCode appearance without changing the wallpaper: blur radius, dim level, Monet dynamic colors on/off, wallpaper visibility (translucent vs opaque surfaces), and the liquid-glass left sidebar. Only the provided values change; the rest keep their current setting.",
     inputSchema: {
       blur: z.number().min(0).max(100).optional().describe("Wallpaper blur radius in px"),
       dim: z.number().min(0).max(100).optional().describe("Wallpaper darkening 0-100"),
       monet: z.boolean().optional().describe("Regenerate UI colors from the wallpaper (true) or keep ZCode's original colors (false)"),
       wallpaper_visible: z.boolean().optional().describe("Translucent surfaces showing the wallpaper (true) or opaque surfaces (false)"),
       fit: z.enum(["cover", "contain", "smart"]).optional().describe("Framing: cover fills and crops, contain letterboxes with a blurred backdrop, smart analyzes the picture locally and picks the best framing + focus point"),
+      sidebar_glass: z.boolean().optional().describe("Frost the left sidebar into a floating liquid-glass panel (false restores the flat sidebar)"),
+      sidebar_blur: z.number().min(0).max(60).optional().describe("Sidebar backdrop blur radius in px (default 38)"),
+      sidebar_tint: z.number().min(0).max(100).optional().describe("Sidebar glass tint strength 0-100: higher is more opaque, lower lets more wallpaper through (default 30)"),
+      sidebar_radius: z.number().min(0).max(40).optional().describe("Sidebar corner radius in px; 0 makes the panel flush with the window edge (default 18)"),
     },
   },
-  async ({ blur, dim, monet, wallpaper_visible, fit }) => {
+  async ({ blur, dim, monet, wallpaper_visible, fit, sidebar_glass, sidebar_blur, sidebar_tint, sidebar_radius }) => {
     try {
-      const windows = await applyColorsOnly({ blur, dim, monet, wallpaperVisible: wallpaper_visible, fit });
+      const windows = await applyColorsOnly({
+        blur,
+        dim,
+        monet,
+        wallpaperVisible: wallpaper_visible,
+        fit,
+        sidebarGlass: sidebar_glass,
+        sidebarBlur: sidebar_blur,
+        sidebarTint: sidebar_tint,
+        sidebarRadius: sidebar_radius,
+      });
       return { content: [{ type: "text", text: `Appearance updated in ${windows} window(s).` }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Failed: ${(err as Error).message}` }], isError: true };

@@ -17,6 +17,15 @@ export interface BeautifyConfig {
   monet: boolean;
   wallpaperVisible: boolean;
   fit: WallpaperFit;
+  /** Frost the left sidebar into a liquid-glass panel (off by default). */
+  sidebarGlass: boolean;
+  /** Backdrop blur radius for the glass sidebar, in px (0-60). */
+  sidebarBlur: number;
+  /** Glass tint strength 0-100: how much of the theme surface colour the
+   *  panel keeps. Higher = more opaque, lower = more of the wallpaper shows. */
+  sidebarTint: number;
+  /** Corner radius in px (0 = flush with the window edge, no floating). */
+  sidebarRadius: number;
 }
 
 export const DEFAULT_CONFIG: BeautifyConfig = {
@@ -26,6 +35,10 @@ export const DEFAULT_CONFIG: BeautifyConfig = {
   monet: true,
   wallpaperVisible: true,
   fit: "cover",
+  sidebarGlass: false,
+  sidebarBlur: 38,
+  sidebarTint: 30,
+  sidebarRadius: 18,
 };
 
 export interface BuiltPayload {
@@ -99,6 +112,10 @@ html, body { background: transparent !important; }
   }
   const wallpaperDataUri = config.wallpaperVisible ? assets?.dataUri : undefined;
 
+  if (config.sidebarGlass) {
+    parts.push(buildSidebarGlassCss(config));
+  }
+
   return {
     css: parts.join("\n"),
     wallpaperDataUri,
@@ -106,6 +123,65 @@ html, body { background: transparent !important; }
     focusX,
     focusY,
   };
+}
+
+/**
+ * Liquid-glass treatment for the left sidebar (`#sidebar`).
+ *
+ * ZCode paints the sidebar from `--color-sidebar`, which our token overrides
+ * already make translucent — but a flat translucent fill over a busy wallpaper
+ * reads as "a hole", not as glass. This adds the three ingredients that make it
+ * read as material: a frosted backdrop, a specular sheen, and a lit rim.
+ *
+ * Two deliberate constraints:
+ *  - No `position`/`z-index` is set on `#sidebar`. Changing them would make the
+ *    panel a stacking context and trap ZCode's own modals behind it; the glass
+ *    is painted purely with background/backdrop-filter/box-shadow.
+ *  - The tint is derived from `--color-sidebar` at build time via color-mix, so
+ *    the panel keeps following the Monet scheme (or ZCode's native colours when
+ *    Monet is off) instead of hard-coding one palette.
+ */
+export function buildSidebarGlassCss(config: BeautifyConfig): string {
+  const tint = Math.max(0, Math.min(100, config.sidebarTint)) / 100;
+  const blur = Math.max(0, Math.min(60, config.sidebarBlur));
+  const radius = Math.max(0, Math.min(40, config.sidebarRadius));
+  const floating = radius > 0;
+
+  // Specular sheen: light gathers at the top-left edge and thins out toward the
+  // bottom-right, the way a real pane catches a window.
+  const sheen = `linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.06) 26%,
+    rgba(255, 255, 255, 0.00) 48%,
+    rgba(255, 255, 255, 0.03) 74%,
+    rgba(255, 255, 255, 0.10) 100%
+  )`;
+
+  const rim = [
+    "inset 0 1.5px 0 rgba(255, 255, 255, 0.34)",
+    "inset 0 0 0 1px rgba(255, 255, 255, 0.14)",
+    "inset 0 -1.5px 0 rgba(255, 255, 255, 0.08)",
+    "inset 0 0 24px rgba(255, 255, 255, 0.035)",
+  ];
+  // Only a floating panel casts an outer shadow; flush panels have nowhere to cast it.
+  if (floating) rim.push("0 10px 32px rgba(0, 0, 0, 0.34)", "0 2px 10px rgba(0, 0, 0, 0.20)");
+
+  const inset = floating
+    ? `  margin: 8px !important;
+  height: calc(100% - 16px) !important;`
+    : `  margin: 0 !important;`;
+
+  return `#sidebar {
+${inset}
+  border-radius: ${radius}px !important;
+  background-color: color-mix(in srgb, var(--color-sidebar, rgba(32, 26, 25, 0.62)) ${Math.round(tint * 100)}%, transparent) !important;
+  background-image: ${sheen} !important;
+  backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
+  -webkit-backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
+  box-shadow: ${rim.join(", ")} !important;
+  border: none !important;
+}`;
 }
 
 /** Apply config to a running ZCode instance. Returns how many windows got it. */
