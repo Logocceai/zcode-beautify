@@ -17,6 +17,16 @@
   than hard-coding a palette, and the CSS sets no `position`/`z-index` on
   `#sidebar`, so ZCode's own modals keep their stacking order.
 
+- **Liquid-glass file preview.** `previewGlass` applies the same recipe to the
+  right-hand file preview (`#browser`), with its own `previewBlur` (0-60 px),
+  `previewTint` (0-100) and `previewRadius` (0-40 px). Off by default. This
+  panel needs a surface more than the sidebar does: its wrapper paints
+  `bg-background`, and the token overrides set `--color-background` to
+  `transparent` so the wallpaper shows through — which left preview text sitting
+  straight on the picture. A collapse guard clears the glass while the panel is
+  mounted at width 0 (`data-disabled`), so no float shadow smears past the window
+  edge.
+
 ## v0.3.3
 
 The plugin now keeps the debug port alive across ZCode updates by itself, and

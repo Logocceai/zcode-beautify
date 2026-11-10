@@ -10,6 +10,7 @@
 
 - **壁纸**——任意本地图片作为固定背景层,铺在 UI 之下;三种取景模式:`cover`(填满裁剪)、`contain`(完整显示,背后是同图模糊放大底)、`smart`(AI 适应:本地分析画面主体,自动选择最佳取景与焦点位置)。
 - **莫奈配色**——用 Google 官方 MD3 算法从壁纸提取 source color,生成 light/dark 双套调色板,映射覆盖 ZCode 的 35+ 个语义 CSS 变量。
+- **预览液态玻璃**——右侧文件预览面板同款玻璃化:它原本的底是 `--color-background`,而插件把该变量改成了 `transparent`,于是预览文字直接压在花壁纸上;玻璃层把可读的磨砂面补回来。独立开关与模糊 / 浓度 / 圆角三个旋钮,默认关闭。
 - **侧栏液态玻璃**——可选的左侧栏玻璃化:磨砂背景、斜向镜面高光、发光描边与悬浮投影,让侧栏读起来像一块玻璃而不是壁纸上的"透明洞"。配色由 `--color-sidebar` 用 `color-mix` 推导,自动跟随莫奈方案(关闭莫奈时跟随 ZCode 原生色)。默认关闭,可调模糊 / 浓度 / 圆角;圆角设为 0 则贴着窗口边缘。
 - **实时设置面板**——ZCode 窗口内可拖拽的悬浮面板:blur/dim 滑块、Monet 开关、壁纸透显开关、一键换图、还原;所有调整即时预览并自动保存。
 - **对话控制**——内置 `/beautify` 斜杠命令与 MCP 工具,让 ZCode 智能体代你设壁纸、调主题。
@@ -103,7 +104,7 @@ node dist/cli.js serve --detach
 | 命令 | 用途 |
 |---|---|
 | `launch [--port N]` | 以调试端口启动 ZCode(需先完全退出) |
-| `apply <image> [--blur] [--dim] [--fit] [--no-monet] [--sidebar-glass] [--sidebar-blur] [--sidebar-tint] [--sidebar-radius]` | 设壁纸并适配配色(`--fit cover\|contain\|smart`);`--sidebar-glass` 开启侧栏液态玻璃 |
+| `apply <image> [--blur] [--dim] [--fit] [--no-monet] [--sidebar-glass] [--sidebar-blur] [--sidebar-tint] [--sidebar-radius]` | 设壁纸并适配配色(`--fit cover\|contain\|smart`);`--sidebar-glass` / `--preview-glass` 开启侧栏 / 预览液态玻璃 |
 | `colors` | 不换图,重新应用已存主题 |
 | `serve [--detach] [--api-port M]` | 守护模式 + 设置面板 + 本地控制 API(默认 API 端口 9223);`--detach` 使其脱离启动它的终端存活 |
 | `watch` | 无面板守护模式:ZCode 重启后自动重注入 |
@@ -118,7 +119,7 @@ node dist/cli.js serve --detach
 | 工具 | 用途 |
 |---|---|
 | `set_background` | 设壁纸 + 莫奈配色 |
-| `apply_options` | 不重传图片,单独调 blur/dim/monet/壁纸透显/取景模式/侧栏液态玻璃 |
+| `apply_options` | 不重传图片,单独调 blur/dim/monet/壁纸透显/取景模式/侧栏与预览液态玻璃 |
 | `refresh_theme` | 重启后重注入已存主题 |
 | `reset_appearance` | 移除壁纸与覆盖,还原默认 |
 | `beautify_status` | 查看已存配置 |

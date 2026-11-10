@@ -102,6 +102,7 @@ export function buildPanelScript(apiPort: number, token: string): string {
     '    </div>' +
     '    <div class="zb-row zb-toggles">' +
     '      <label title="把左侧栏做成悬浮的磨砂玻璃面板(配色跟随 UI,不额外写死颜色)"><input type="checkbox" id="zb-glass">侧栏液态玻璃</label>' +
+    '      <label title="把右侧文件预览做成同款磨砂玻璃面板"><input type="checkbox" id="zb-pglass">预览玻璃</label>' +
     '    </div>' +
     '    <div id="zb-glass-opts">' +
     '      <div class="zb-row"><label title="侧栏玻璃背后的模糊强度(像素)"><span>玻璃模糊</span><span><span id="zb-gblur-val">38</span>px</span></label>' +
@@ -178,7 +179,8 @@ export function buildPanelScript(apiPort: number, token: string): string {
         sidebarGlass: $('zb-glass').checked,
         sidebarBlur: Number($('zb-gblur').value),
         sidebarTint: Number($('zb-gtint').value),
-        sidebarRadius: Number($('zb-gradius').value)
+        sidebarRadius: Number($('zb-gradius').value),
+        previewGlass: $('zb-pglass').checked
       }, function (d) { status(d && d.windows > 0 ? '已应用 applied' : '已保存(ZCode 未连接)'); });
     }, 300);
   }
@@ -212,6 +214,7 @@ export function buildPanelScript(apiPort: number, token: string): string {
       $('zb-monet').checked = false;
       $('zb-vis').checked = false;
       $('zb-glass').checked = false;
+      $('zb-pglass').checked = false;
       syncGlassEnabled();
       $('zb-fit').textContent = '背景填充: 未知';
       $('zb-fit').removeAttribute('data-fit');
@@ -233,6 +236,7 @@ export function buildPanelScript(apiPort: number, token: string): string {
         $('zb-monet').checked = !!c.monet;
         $('zb-vis').checked = !!c.wallpaperVisible;
         $('zb-glass').checked = !!c.sidebarGlass;
+        $('zb-pglass').checked = !!c.previewGlass;
         if (typeof c.sidebarBlur === 'number') { $('zb-gblur').value = c.sidebarBlur; $('zb-gblur-val').textContent = c.sidebarBlur; }
         if (typeof c.sidebarTint === 'number') { $('zb-gtint').value = c.sidebarTint; $('zb-gtint-val').textContent = c.sidebarTint; }
         if (typeof c.sidebarRadius === 'number') { $('zb-gradius').value = c.sidebarRadius; $('zb-gradius-val').textContent = c.sidebarRadius; }
@@ -265,6 +269,7 @@ export function buildPanelScript(apiPort: number, token: string): string {
   $('zb-monet').addEventListener('change', pushConfig);
   $('zb-vis').addEventListener('change', pushConfig);
   $('zb-glass').addEventListener('change', function () { syncGlassEnabled(); pushConfig(); });
+  $('zb-pglass').addEventListener('change', pushConfig);
   $('zb-gblur').addEventListener('input', function () { $('zb-gblur-val').textContent = this.value; pushConfig(); });
   $('zb-gtint').addEventListener('input', function () { $('zb-gtint-val').textContent = this.value; pushConfig(); });
   $('zb-gradius').addEventListener('input', function () { $('zb-gradius-val').textContent = this.value; pushConfig(); });

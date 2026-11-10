@@ -33,6 +33,10 @@ Commands:
     --sidebar-blur <px>          Sidebar backdrop blur (default 38)
     --sidebar-tint <0-100>       Sidebar glass tint strength (default 30)
     --sidebar-radius <px>        Sidebar corner radius; 0 = flush (default 18)
+    --preview-glass              Frost the right-hand file preview into a glass sheet
+    --preview-blur <px>          Preview backdrop blur (default 40)
+    --preview-tint <0-100>       Preview glass tint strength (default 30)
+    --preview-radius <px>        Preview corner radius; 0 = flush (default 16)
     --port <N>                   CDP port (default 9222)
   colors [--port N]              Re-apply stored theme without wallpaper change
   reset [--port N]               Remove wallpaper and color overrides
@@ -97,6 +101,10 @@ async function main(): Promise<void> {
           ...(flag("--sidebar-blur") !== undefined ? { sidebarBlur: Number(flag("--sidebar-blur")) } : {}),
           ...(flag("--sidebar-tint") !== undefined ? { sidebarTint: Number(flag("--sidebar-tint")) } : {}),
           ...(flag("--sidebar-radius") !== undefined ? { sidebarRadius: Number(flag("--sidebar-radius")) } : {}),
+          ...(has("--preview-glass") ? { previewGlass: true } : {}),
+          ...(flag("--preview-blur") !== undefined ? { previewBlur: Number(flag("--preview-blur")) } : {}),
+          ...(flag("--preview-tint") !== undefined ? { previewTint: Number(flag("--preview-tint")) } : {}),
+          ...(flag("--preview-radius") !== undefined ? { previewRadius: Number(flag("--preview-radius")) } : {}),
         });
         console.log(`Applied wallpaper + theme to ${windows} window(s).`);
         break;

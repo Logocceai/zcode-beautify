@@ -26,6 +26,14 @@ export interface BeautifyConfig {
   sidebarTint: number;
   /** Corner radius in px (0 = flush with the window edge, no floating). */
   sidebarRadius: number;
+  /** Frost the right-hand file preview into a glass sheet (off by default). */
+  previewGlass: boolean;
+  /** Backdrop blur radius for the preview glass, in px (0-60). */
+  previewBlur: number;
+  /** Preview glass tint strength 0-100 (higher = more opaque). */
+  previewTint: number;
+  /** Preview corner radius in px (0 = flush, no float). */
+  previewRadius: number;
 }
 
 export const DEFAULT_CONFIG: BeautifyConfig = {
@@ -39,6 +47,10 @@ export const DEFAULT_CONFIG: BeautifyConfig = {
   sidebarBlur: 38,
   sidebarTint: 30,
   sidebarRadius: 18,
+  previewGlass: false,
+  previewBlur: 40,
+  previewTint: 30,
+  previewRadius: 16,
 };
 
 export interface BuiltPayload {
@@ -115,6 +127,9 @@ html, body { background: transparent !important; }
   if (config.sidebarGlass) {
     parts.push(buildSidebarGlassCss(config));
   }
+  if (config.previewGlass) {
+    parts.push(buildPreviewGlassCss(config));
+  }
 
   return {
     css: parts.join("\n"),
@@ -123,6 +138,71 @@ html, body { background: transparent !important; }
     focusX,
     focusY,
   };
+}
+
+/**
+ * Shared glass recipe. Both the sidebar and the file preview are panes of the
+ * same material, so the frost / sheen / rim numbers live in one place and each
+ * caller only supplies its selector, geometry and tint token.
+ */
+interface GlassRecipe {
+  selector: string;
+  /** CSS custom property holding the surface colour to tint from. */
+  tintVar: string;
+  tintFallback: string;
+  tint: number;
+  blur: number;
+  radius: number;
+  /** Side of the panel that keeps a margin when floating (the others are 0). */
+  marginAxis: "all" | "left";
+  /** Extra rules appended verbatim, e.g. concentric-inner-radius or collapse guards. */
+  extra?: string;
+}
+
+function glassRules(r: GlassRecipe): string {
+  // Specular sheen: light gathers at the top-left edge and thins out toward the
+  // bottom-right, the way a real pane catches a window.
+  const sheen = `linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.06) 26%,
+    rgba(255, 255, 255, 0.00) 48%,
+    rgba(255, 255, 255, 0.03) 74%,
+    rgba(255, 255, 255, 0.10) 100%
+  )`;
+
+  const rim = [
+    "inset 0 1.5px 0 rgba(255, 255, 255, 0.34)",
+    "inset 0 0 0 1px rgba(255, 255, 255, 0.14)",
+    "inset 0 -1.5px 0 rgba(255, 255, 255, 0.08)",
+    "inset 0 0 24px rgba(255, 255, 255, 0.035)",
+  ];
+  const floating = r.radius > 0;
+  // Only a floating panel casts an outer shadow; flush panels have nowhere to cast it.
+  if (floating) rim.push("0 10px 32px rgba(0, 0, 0, 0.34)", "0 2px 10px rgba(0, 0, 0, 0.20)");
+
+  const inset = !floating
+    ? `  margin: 0 !important;`
+    : r.marginAxis === "all"
+      ? `  margin: 8px !important;
+  height: calc(100% - 16px) !important;`
+      : `  margin: 6px 6px 6px 0 !important;
+  height: calc(100% - 12px) !important;`;
+
+  const tintPct = Math.round(Math.max(0, Math.min(100, r.tint)));
+  const blur = Math.max(0, Math.min(60, r.blur));
+  const radius = Math.max(0, Math.min(40, r.radius));
+
+  return `${r.selector} {
+${inset}
+  border-radius: ${radius}px !important;
+  background-color: color-mix(in srgb, var(${r.tintVar}, ${r.tintFallback}) ${tintPct}%, transparent) !important;
+  background-image: ${sheen} !important;
+  backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
+  -webkit-backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
+  box-shadow: ${rim.join(", ")} !important;
+  border: none !important;
+}${r.extra ? "\n" + r.extra : ""}`;
 }
 
 /**
@@ -142,46 +222,57 @@ html, body { background: transparent !important; }
  *    Monet is off) instead of hard-coding one palette.
  */
 export function buildSidebarGlassCss(config: BeautifyConfig): string {
-  const tint = Math.max(0, Math.min(100, config.sidebarTint)) / 100;
-  const blur = Math.max(0, Math.min(60, config.sidebarBlur));
-  const radius = Math.max(0, Math.min(40, config.sidebarRadius));
-  const floating = radius > 0;
+  return glassRules({
+    selector: "#sidebar",
+    tintVar: "--color-sidebar",
+    tintFallback: "rgba(32, 26, 25, 0.62)",
+    tint: config.sidebarTint,
+    blur: config.sidebarBlur,
+    radius: config.sidebarRadius,
+    marginAxis: "all",
+  });
+}
 
-  // Specular sheen: light gathers at the top-left edge and thins out toward the
-  // bottom-right, the way a real pane catches a window.
-  const sheen = `linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.16) 0%,
-    rgba(255, 255, 255, 0.06) 26%,
-    rgba(255, 255, 255, 0.00) 48%,
-    rgba(255, 255, 255, 0.03) 74%,
-    rgba(255, 255, 255, 0.10) 100%
-  )`;
-
-  const rim = [
-    "inset 0 1.5px 0 rgba(255, 255, 255, 0.34)",
-    "inset 0 0 0 1px rgba(255, 255, 255, 0.14)",
-    "inset 0 -1.5px 0 rgba(255, 255, 255, 0.08)",
-    "inset 0 0 24px rgba(255, 255, 255, 0.035)",
-  ];
-  // Only a floating panel casts an outer shadow; flush panels have nowhere to cast it.
-  if (floating) rim.push("0 10px 32px rgba(0, 0, 0, 0.34)", "0 2px 10px rgba(0, 0, 0, 0.20)");
-
-  const inset = floating
-    ? `  margin: 8px !important;
-  height: calc(100% - 16px) !important;`
-    : `  margin: 0 !important;`;
-
-  return `#sidebar {
-${inset}
-  border-radius: ${radius}px !important;
-  background-color: color-mix(in srgb, var(--color-sidebar, rgba(32, 26, 25, 0.62)) ${Math.round(tint * 100)}%, transparent) !important;
-  background-image: ${sheen} !important;
-  backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
-  -webkit-backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
-  box-shadow: ${rim.join(", ")} !important;
-  border: none !important;
-}`;
+/**
+ * Liquid-glass treatment for the right-hand file preview (`#browser`).
+ *
+ * This panel needs a surface more urgently than the sidebar does: its wrapper
+ * paints `bg-background`, and the token overrides set `--color-background` to
+ * `transparent` so the wallpaper can show through. With nothing behind it the
+ * preview text sits straight on the wallpaper. The glass restores a readable
+ * frosted surface while still letting the picture read through.
+ *
+ * The right edge sits against the window chrome, so the margin is zeroed there
+ * and the float shadow only shows on the three inner sides.
+ */
+export function buildPreviewGlassCss(config: BeautifyConfig): string {
+  return glassRules({
+    selector: "#browser",
+    tintVar: "--color-card",
+    tintFallback: "rgba(37, 30, 29, 0.72)",
+    tint: config.previewTint,
+    blur: config.previewBlur,
+    radius: config.previewRadius,
+    marginAxis: "left",
+    // The panel's own wrapper carries a 6px radius; match it inward so the two
+    // rounded corners stay concentric instead of cutting a notch.
+    // The collapse guard matters: the host keeps this panel mounted at width 0
+    // (it never sets display:none) and marks it data-disabled, so the glass,
+    // its margin and its outer shadow would still be laid out — the float
+    // shadow alone smears a dark smudge past the window edge.
+    extra: `#browser > div > div > div[class*="rounded-md"] {
+  border-radius: 12px !important;
+}
+#browser[data-disabled="true"] {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}`,
+  });
 }
 
 /** Apply config to a running ZCode instance. Returns how many windows got it. */

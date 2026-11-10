@@ -97,6 +97,10 @@ function publicConfig(config: BeautifyConfig) {
     sidebarBlur: config.sidebarBlur,
     sidebarTint: config.sidebarTint,
     sidebarRadius: config.sidebarRadius,
+    previewGlass: config.previewGlass,
+    previewBlur: config.previewBlur,
+    previewTint: config.previewTint,
+    previewRadius: config.previewRadius,
     wallpaperSet: Boolean(config.wallpaperPath && fs.existsSync(config.wallpaperPath)),
     hasBackup: hasBackup(),
     cdpPort: config.port,
@@ -114,6 +118,10 @@ function sanitize(body: any): Partial<BeautifyConfig> {
   if (typeof body?.sidebarBlur === "number" && body.sidebarBlur >= 0 && body.sidebarBlur <= 60) out.sidebarBlur = body.sidebarBlur;
   if (typeof body?.sidebarTint === "number" && body.sidebarTint >= 0 && body.sidebarTint <= 100) out.sidebarTint = body.sidebarTint;
   if (typeof body?.sidebarRadius === "number" && body.sidebarRadius >= 0 && body.sidebarRadius <= 40) out.sidebarRadius = body.sidebarRadius;
+  if (typeof body?.previewGlass === "boolean") out.previewGlass = body.previewGlass;
+  if (typeof body?.previewBlur === "number" && body.previewBlur >= 0 && body.previewBlur <= 60) out.previewBlur = body.previewBlur;
+  if (typeof body?.previewTint === "number" && body.previewTint >= 0 && body.previewTint <= 100) out.previewTint = body.previewTint;
+  if (typeof body?.previewRadius === "number" && body.previewRadius >= 0 && body.previewRadius <= 40) out.previewRadius = body.previewRadius;
   return out;
 }
 

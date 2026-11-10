@@ -10,6 +10,7 @@ Beautify the **ZCode desktop client**: use any image as a background wallpaper a
 
 - **Wallpaper** — any local image becomes a fixed background layer behind the UI, with three framing modes: `cover` (fill and crop), `contain` (letterboxed over a blurred backdrop of the same picture), and `smart` — a local AI-style analysis that finds the salient subject and picks the best framing and focus point automatically.
 - **Monet theming** — a source color is extracted from the wallpaper with Google's official MD3 algorithm; light/dark palettes are mapped onto ZCode's semantic CSS variables (35+ tokens).
+- **Liquid-glass file preview** — the same recipe for the right-hand file preview. That panel needs it more than the sidebar does: its wrapper paints `bg-background`, which the token overrides set to `transparent` so the wallpaper shows through, leaving preview text sitting straight on the picture. Own toggle plus blur / tint / radius knobs; off by default.
 - **Liquid-glass sidebar** — an optional frost treatment for the left sidebar: backdrop blur, a diagonal specular sheen, a lit rim and an outer float shadow, so the column reads as a pane of glass instead of a transparent hole in the wallpaper. The tint is derived from `--color-sidebar` with `color-mix`, so it follows the Monet scheme (or ZCode's native colours when Monet is off). Off by default; blur, tint strength and corner radius are adjustable — radius 0 keeps the panel flush with the window edge.
 - **Live settings panel** — a draggable panel inside ZCode with blur/dim sliders, Monet and wallpaper-visibility toggles, one-click wallpaper swap, and reset. Changes preview instantly and persist.
 - **Conversation control** — bundled slash command `/beautify` and MCP tools let the ZCode agent set the wallpaper or tune the theme on your behalf.
@@ -122,7 +123,7 @@ You can also just type `/beautify <image path>` in ZCode and let the agent do it
 | Tool | Purpose |
 |---|---|
 | `set_background` | Set wallpaper + Monet colors |
-| `apply_options` | Tune blur/dim/monet/wallpaper visibility/framing/liquid-glass sidebar without re-sending the image |
+| `apply_options` | Tune blur/dim/monet/wallpaper visibility/framing/liquid-glass sidebar and file preview without re-sending the image |
 | `refresh_theme` | Re-inject the stored theme after a restart |
 | `reset_appearance` | Remove wallpaper and overrides |
 | `beautify_status` | Show the stored config |

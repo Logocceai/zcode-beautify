@@ -109812,6 +109812,9 @@ html, body { background: transparent !important; }
   if (config.sidebarGlass) {
     parts.push(buildSidebarGlassCss(config));
   }
+  if (config.previewGlass) {
+    parts.push(buildPreviewGlassCss(config));
+  }
   return {
     css: parts.join("\n"),
     wallpaperDataUri,
@@ -109820,11 +109823,7 @@ html, body { background: transparent !important; }
     focusY
   };
 }
-function buildSidebarGlassCss(config) {
-  const tint = Math.max(0, Math.min(100, config.sidebarTint)) / 100;
-  const blur = Math.max(0, Math.min(60, config.sidebarBlur));
-  const radius = Math.max(0, Math.min(40, config.sidebarRadius));
-  const floating = radius > 0;
+function glassRules(r2) {
   const sheen = `linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.16) 0%,
@@ -109839,20 +109838,65 @@ function buildSidebarGlassCss(config) {
     "inset 0 -1.5px 0 rgba(255, 255, 255, 0.08)",
     "inset 0 0 24px rgba(255, 255, 255, 0.035)"
   ];
+  const floating = r2.radius > 0;
   if (floating)
     rim.push("0 10px 32px rgba(0, 0, 0, 0.34)", "0 2px 10px rgba(0, 0, 0, 0.20)");
-  const inset = floating ? `  margin: 8px !important;
-  height: calc(100% - 16px) !important;` : `  margin: 0 !important;`;
-  return `#sidebar {
+  const inset = !floating ? `  margin: 0 !important;` : r2.marginAxis === "all" ? `  margin: 8px !important;
+  height: calc(100% - 16px) !important;` : `  margin: 6px 6px 6px 0 !important;
+  height: calc(100% - 12px) !important;`;
+  const tintPct = Math.round(Math.max(0, Math.min(100, r2.tint)));
+  const blur = Math.max(0, Math.min(60, r2.blur));
+  const radius = Math.max(0, Math.min(40, r2.radius));
+  return `${r2.selector} {
 ${inset}
   border-radius: ${radius}px !important;
-  background-color: color-mix(in srgb, var(--color-sidebar, rgba(32, 26, 25, 0.62)) ${Math.round(tint * 100)}%, transparent) !important;
+  background-color: color-mix(in srgb, var(${r2.tintVar}, ${r2.tintFallback}) ${tintPct}%, transparent) !important;
   background-image: ${sheen} !important;
   backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
   -webkit-backdrop-filter: blur(${blur}px) saturate(2.1) brightness(1.1) contrast(1.04) !important;
   box-shadow: ${rim.join(", ")} !important;
   border: none !important;
-}`;
+}${r2.extra ? "\n" + r2.extra : ""}`;
+}
+function buildSidebarGlassCss(config) {
+  return glassRules({
+    selector: "#sidebar",
+    tintVar: "--color-sidebar",
+    tintFallback: "rgba(32, 26, 25, 0.62)",
+    tint: config.sidebarTint,
+    blur: config.sidebarBlur,
+    radius: config.sidebarRadius,
+    marginAxis: "all"
+  });
+}
+function buildPreviewGlassCss(config) {
+  return glassRules({
+    selector: "#browser",
+    tintVar: "--color-card",
+    tintFallback: "rgba(37, 30, 29, 0.72)",
+    tint: config.previewTint,
+    blur: config.previewBlur,
+    radius: config.previewRadius,
+    marginAxis: "left",
+    // The panel's own wrapper carries a 6px radius; match it inward so the two
+    // rounded corners stay concentric instead of cutting a notch.
+    // The collapse guard matters: the host keeps this panel mounted at width 0
+    // (it never sets display:none) and marks it data-disabled, so the glass,
+    // its margin and its outer shadow would still be laid out — the float
+    // shadow alone smears a dark smudge past the window edge.
+    extra: `#browser > div > div > div[class*="rounded-md"] {
+  border-radius: 12px !important;
+}
+#browser[data-disabled="true"] {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}`
+  });
 }
 async function applyToZCode(config, payload) {
   const targets = pickRendererTargets(await listTargets(config.port));
@@ -109902,7 +109946,11 @@ var init_inject = __esm({
       sidebarGlass: false,
       sidebarBlur: 38,
       sidebarTint: 30,
-      sidebarRadius: 18
+      sidebarRadius: 18,
+      previewGlass: false,
+      previewBlur: 40,
+      previewTint: 30,
+      previewRadius: 16
     };
   }
 });
@@ -110077,7 +110125,11 @@ async function applyWallpaper(imagePath, opts) {
     sidebarGlass: opts.sidebarGlass ?? stored.sidebarGlass ?? DEFAULT_CONFIG.sidebarGlass,
     sidebarBlur: opts.sidebarBlur ?? stored.sidebarBlur ?? DEFAULT_CONFIG.sidebarBlur,
     sidebarTint: opts.sidebarTint ?? stored.sidebarTint ?? DEFAULT_CONFIG.sidebarTint,
-    sidebarRadius: opts.sidebarRadius ?? stored.sidebarRadius ?? DEFAULT_CONFIG.sidebarRadius
+    sidebarRadius: opts.sidebarRadius ?? stored.sidebarRadius ?? DEFAULT_CONFIG.sidebarRadius,
+    previewGlass: opts.previewGlass ?? stored.previewGlass ?? DEFAULT_CONFIG.previewGlass,
+    previewBlur: opts.previewBlur ?? stored.previewBlur ?? DEFAULT_CONFIG.previewBlur,
+    previewTint: opts.previewTint ?? stored.previewTint ?? DEFAULT_CONFIG.previewTint,
+    previewRadius: opts.previewRadius ?? stored.previewRadius ?? DEFAULT_CONFIG.previewRadius
   };
   fs4.mkdirSync(dataDir(), { recursive: true });
   const dest = path2.join(dataDir(), "wallpaper" + path2.extname(abs).toLowerCase());
@@ -110103,7 +110155,11 @@ async function applyColorsOnly(opts) {
     sidebarGlass: opts.sidebarGlass ?? stored.sidebarGlass ?? DEFAULT_CONFIG.sidebarGlass,
     sidebarBlur: opts.sidebarBlur ?? stored.sidebarBlur ?? DEFAULT_CONFIG.sidebarBlur,
     sidebarTint: opts.sidebarTint ?? stored.sidebarTint ?? DEFAULT_CONFIG.sidebarTint,
-    sidebarRadius: opts.sidebarRadius ?? stored.sidebarRadius ?? DEFAULT_CONFIG.sidebarRadius
+    sidebarRadius: opts.sidebarRadius ?? stored.sidebarRadius ?? DEFAULT_CONFIG.sidebarRadius,
+    previewGlass: opts.previewGlass ?? stored.previewGlass ?? DEFAULT_CONFIG.previewGlass,
+    previewBlur: opts.previewBlur ?? stored.previewBlur ?? DEFAULT_CONFIG.previewBlur,
+    previewTint: opts.previewTint ?? stored.previewTint ?? DEFAULT_CONFIG.previewTint,
+    previewRadius: opts.previewRadius ?? stored.previewRadius ?? DEFAULT_CONFIG.previewRadius
   };
   saveConfig(config);
   return applyToZCode(config, await buildPayloadFromConfig(config));
@@ -110395,6 +110451,7 @@ function buildPanelScript(apiPort, token) {
     '    </div>' +
     '    <div class="zb-row zb-toggles">' +
     '      <label title="\u628A\u5DE6\u4FA7\u680F\u505A\u6210\u60AC\u6D6E\u7684\u78E8\u7802\u73BB\u7483\u9762\u677F(\u914D\u8272\u8DDF\u968F UI,\u4E0D\u989D\u5916\u5199\u6B7B\u989C\u8272)"><input type="checkbox" id="zb-glass">\u4FA7\u680F\u6DB2\u6001\u73BB\u7483</label>' +
+    '      <label title="\u628A\u53F3\u4FA7\u6587\u4EF6\u9884\u89C8\u505A\u6210\u540C\u6B3E\u78E8\u7802\u73BB\u7483\u9762\u677F"><input type="checkbox" id="zb-pglass">\u9884\u89C8\u73BB\u7483</label>' +
     '    </div>' +
     '    <div id="zb-glass-opts">' +
     '      <div class="zb-row"><label title="\u4FA7\u680F\u73BB\u7483\u80CC\u540E\u7684\u6A21\u7CCA\u5F3A\u5EA6(\u50CF\u7D20)"><span>\u73BB\u7483\u6A21\u7CCA</span><span><span id="zb-gblur-val">38</span>px</span></label>' +
@@ -110471,7 +110528,8 @@ function buildPanelScript(apiPort, token) {
         sidebarGlass: $('zb-glass').checked,
         sidebarBlur: Number($('zb-gblur').value),
         sidebarTint: Number($('zb-gtint').value),
-        sidebarRadius: Number($('zb-gradius').value)
+        sidebarRadius: Number($('zb-gradius').value),
+        previewGlass: $('zb-pglass').checked
       }, function (d) { status(d && d.windows > 0 ? '\u5DF2\u5E94\u7528 applied' : '\u5DF2\u4FDD\u5B58(ZCode \u672A\u8FDE\u63A5)'); });
     }, 300);
   }
@@ -110505,6 +110563,7 @@ function buildPanelScript(apiPort, token) {
       $('zb-monet').checked = false;
       $('zb-vis').checked = false;
       $('zb-glass').checked = false;
+      $('zb-pglass').checked = false;
       syncGlassEnabled();
       $('zb-fit').textContent = '\u80CC\u666F\u586B\u5145: \u672A\u77E5';
       $('zb-fit').removeAttribute('data-fit');
@@ -110526,6 +110585,7 @@ function buildPanelScript(apiPort, token) {
         $('zb-monet').checked = !!c.monet;
         $('zb-vis').checked = !!c.wallpaperVisible;
         $('zb-glass').checked = !!c.sidebarGlass;
+        $('zb-pglass').checked = !!c.previewGlass;
         if (typeof c.sidebarBlur === 'number') { $('zb-gblur').value = c.sidebarBlur; $('zb-gblur-val').textContent = c.sidebarBlur; }
         if (typeof c.sidebarTint === 'number') { $('zb-gtint').value = c.sidebarTint; $('zb-gtint-val').textContent = c.sidebarTint; }
         if (typeof c.sidebarRadius === 'number') { $('zb-gradius').value = c.sidebarRadius; $('zb-gradius-val').textContent = c.sidebarRadius; }
@@ -110558,6 +110618,7 @@ function buildPanelScript(apiPort, token) {
   $('zb-monet').addEventListener('change', pushConfig);
   $('zb-vis').addEventListener('change', pushConfig);
   $('zb-glass').addEventListener('change', function () { syncGlassEnabled(); pushConfig(); });
+  $('zb-pglass').addEventListener('change', pushConfig);
   $('zb-gblur').addEventListener('input', function () { $('zb-gblur-val').textContent = this.value; pushConfig(); });
   $('zb-gtint').addEventListener('input', function () { $('zb-gtint-val').textContent = this.value; pushConfig(); });
   $('zb-gradius').addEventListener('input', function () { $('zb-gradius-val').textContent = this.value; pushConfig(); });
@@ -110763,6 +110824,10 @@ function publicConfig(config) {
     sidebarBlur: config.sidebarBlur,
     sidebarTint: config.sidebarTint,
     sidebarRadius: config.sidebarRadius,
+    previewGlass: config.previewGlass,
+    previewBlur: config.previewBlur,
+    previewTint: config.previewTint,
+    previewRadius: config.previewRadius,
     wallpaperSet: Boolean(config.wallpaperPath && fs7.existsSync(config.wallpaperPath)),
     hasBackup: hasBackup(),
     cdpPort: config.port
@@ -110788,6 +110853,14 @@ function sanitize(body) {
     out.sidebarTint = body.sidebarTint;
   if (typeof body?.sidebarRadius === "number" && body.sidebarRadius >= 0 && body.sidebarRadius <= 40)
     out.sidebarRadius = body.sidebarRadius;
+  if (typeof body?.previewGlass === "boolean")
+    out.previewGlass = body.previewGlass;
+  if (typeof body?.previewBlur === "number" && body.previewBlur >= 0 && body.previewBlur <= 60)
+    out.previewBlur = body.previewBlur;
+  if (typeof body?.previewTint === "number" && body.previewTint >= 0 && body.previewTint <= 100)
+    out.previewTint = body.previewTint;
+  if (typeof body?.previewRadius === "number" && body.previewRadius >= 0 && body.previewRadius <= 40)
+    out.previewRadius = body.previewRadius;
   return out;
 }
 async function registerScript(session, source) {
@@ -111284,6 +111357,10 @@ Commands:
     --sidebar-blur <px>          Sidebar backdrop blur (default 38)
     --sidebar-tint <0-100>       Sidebar glass tint strength (default 30)
     --sidebar-radius <px>        Sidebar corner radius; 0 = flush (default 18)
+    --preview-glass              Frost the right-hand file preview into a glass sheet
+    --preview-blur <px>          Preview backdrop blur (default 40)
+    --preview-tint <0-100>       Preview glass tint strength (default 30)
+    --preview-radius <px>        Preview corner radius; 0 = flush (default 16)
     --port <N>                   CDP port (default 9222)
   colors [--port N]              Re-apply stored theme without wallpaper change
   reset [--port N]               Remove wallpaper and color overrides
@@ -111341,7 +111418,11 @@ Quit ZCode completely (including any tray icon), then run \`zcode-beautify launc
           ...has("--sidebar-glass") ? { sidebarGlass: true } : {},
           ...flag("--sidebar-blur") !== void 0 ? { sidebarBlur: Number(flag("--sidebar-blur")) } : {},
           ...flag("--sidebar-tint") !== void 0 ? { sidebarTint: Number(flag("--sidebar-tint")) } : {},
-          ...flag("--sidebar-radius") !== void 0 ? { sidebarRadius: Number(flag("--sidebar-radius")) } : {}
+          ...flag("--sidebar-radius") !== void 0 ? { sidebarRadius: Number(flag("--sidebar-radius")) } : {},
+          ...has("--preview-glass") ? { previewGlass: true } : {},
+          ...flag("--preview-blur") !== void 0 ? { previewBlur: Number(flag("--preview-blur")) } : {},
+          ...flag("--preview-tint") !== void 0 ? { previewTint: Number(flag("--preview-tint")) } : {},
+          ...flag("--preview-radius") !== void 0 ? { previewRadius: Number(flag("--preview-radius")) } : {}
         });
         console.log(`Applied wallpaper + theme to ${windows} window(s).`);
         break;

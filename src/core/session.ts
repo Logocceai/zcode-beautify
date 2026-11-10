@@ -18,6 +18,10 @@ export interface ApplyOptions {
   sidebarBlur?: number;
   sidebarTint?: number;
   sidebarRadius?: number;
+  previewGlass?: boolean;
+  previewBlur?: number;
+  previewTint?: number;
+  previewRadius?: number;
 }
 
 /** Applies (or refreshes) the theme using the stored config. */
@@ -44,6 +48,10 @@ export async function applyWallpaper(imagePath: string, opts: ApplyOptions): Pro
     sidebarBlur: opts.sidebarBlur ?? stored.sidebarBlur ?? DEFAULT_CONFIG.sidebarBlur,
     sidebarTint: opts.sidebarTint ?? stored.sidebarTint ?? DEFAULT_CONFIG.sidebarTint,
     sidebarRadius: opts.sidebarRadius ?? stored.sidebarRadius ?? DEFAULT_CONFIG.sidebarRadius,
+    previewGlass: opts.previewGlass ?? stored.previewGlass ?? DEFAULT_CONFIG.previewGlass,
+    previewBlur: opts.previewBlur ?? stored.previewBlur ?? DEFAULT_CONFIG.previewBlur,
+    previewTint: opts.previewTint ?? stored.previewTint ?? DEFAULT_CONFIG.previewTint,
+    previewRadius: opts.previewRadius ?? stored.previewRadius ?? DEFAULT_CONFIG.previewRadius,
   };
 
   // Keep a copy of the wallpaper inside the data dir so the theme survives
@@ -77,6 +85,10 @@ export async function applyColorsOnly(opts: ApplyOptions): Promise<number> {
     sidebarBlur: opts.sidebarBlur ?? stored.sidebarBlur ?? DEFAULT_CONFIG.sidebarBlur,
     sidebarTint: opts.sidebarTint ?? stored.sidebarTint ?? DEFAULT_CONFIG.sidebarTint,
     sidebarRadius: opts.sidebarRadius ?? stored.sidebarRadius ?? DEFAULT_CONFIG.sidebarRadius,
+    previewGlass: opts.previewGlass ?? stored.previewGlass ?? DEFAULT_CONFIG.previewGlass,
+    previewBlur: opts.previewBlur ?? stored.previewBlur ?? DEFAULT_CONFIG.previewBlur,
+    previewTint: opts.previewTint ?? stored.previewTint ?? DEFAULT_CONFIG.previewTint,
+    previewRadius: opts.previewRadius ?? stored.previewRadius ?? DEFAULT_CONFIG.previewRadius,
   };
   saveConfig(config);
   return applyToZCode(config, await buildPayloadFromConfig(config));

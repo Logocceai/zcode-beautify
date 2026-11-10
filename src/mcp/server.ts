@@ -61,9 +61,13 @@ server.registerTool(
       sidebar_blur: z.number().min(0).max(60).optional().describe("Sidebar backdrop blur radius in px (default 38)"),
       sidebar_tint: z.number().min(0).max(100).optional().describe("Sidebar glass tint strength 0-100: higher is more opaque, lower lets more wallpaper through (default 30)"),
       sidebar_radius: z.number().min(0).max(40).optional().describe("Sidebar corner radius in px; 0 makes the panel flush with the window edge (default 18)"),
+      preview_glass: z.boolean().optional().describe("Frost the right-hand file preview into a glass sheet (false restores the flat panel)"),
+      preview_blur: z.number().min(0).max(60).optional().describe("Preview backdrop blur radius in px (default 40)"),
+      preview_tint: z.number().min(0).max(100).optional().describe("Preview glass tint strength 0-100: higher is more opaque (default 30)"),
+      preview_radius: z.number().min(0).max(40).optional().describe("Preview corner radius in px; 0 makes the panel flush (default 16)"),
     },
   },
-  async ({ blur, dim, monet, wallpaper_visible, fit, sidebar_glass, sidebar_blur, sidebar_tint, sidebar_radius }) => {
+  async ({ blur, dim, monet, wallpaper_visible, fit, sidebar_glass, sidebar_blur, sidebar_tint, sidebar_radius, preview_glass, preview_blur, preview_tint, preview_radius }) => {
     try {
       const windows = await applyColorsOnly({
         blur,
@@ -75,6 +79,10 @@ server.registerTool(
         sidebarBlur: sidebar_blur,
         sidebarTint: sidebar_tint,
         sidebarRadius: sidebar_radius,
+        previewGlass: preview_glass,
+        previewBlur: preview_blur,
+        previewTint: preview_tint,
+        previewRadius: preview_radius,
       });
       return { content: [{ type: "text", text: `Appearance updated in ${windows} window(s).` }] };
     } catch (err) {
